@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль — DairyFood</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-light">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container pb-5" style="max-width:700px">
+    <h4 class="mb-4">Мой профиль</h4>
+
+    <div th:if="${param.saved}" class="alert alert-success py-2">Профиль обновлён</div>
+    <div th:if="${param.metrics}" class="alert alert-success py-2">Замер добавлен</div>
+
+    <!-- Текущие данные -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Сохранённые данные</h6>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm"
+                        type="button" data-bs-toggle="collapse"
+                        data-bs-target="#profileForm" aria-expanded="false">
+                    Обновить профиль
+                </button>
+                <button class="btn btn-outline-success btn-sm"
+                        type="button" data-bs-toggle="collapse"
+                        data-bs-target="#metricsForm" aria-expanded="false">
+                    Добавить замер
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-6">
+                    <span class="text-muted small">Имя</span>
+                    <div th:text="${profile.name ?: '—'}"></div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Пол</span>
+                    <div th:text="${profile.gender == null ? '—' :
+                                    profile.gender.name() == 'MALE' ? 'Мужской' : 'Женский'}"></div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Дата рождения</span>
+                    <div th:text="${profile.birthDate != null ? #temporals.format(profile.birthDate, 'dd.MM.yyyy') : '—'}"></div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Рост</span>
+                    <div th:text="${profile.height != null ? profile.height + ' см' : '—'}"></div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Масса</span>
+                    <div th:text="${profile.weight != null ? profile.weight + ' кг' : '—'}"></div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Уровень активности</span>
+                    <div th:text="${profile.activityLevel == null ? '—' :
+                                    profile.activityLevel.name() == 'SEDENTARY' ? 'Минимальный' :
+                                    profile.activityLevel.name() == 'LIGHTLY_ACTIVE' ? 'Низкий' :
+                                    profile.activityLevel.name() == 'MODERATELY_ACTIVE' ? 'Средний' :
+                                    profile.activityLevel.name() == 'VERY_ACTIVE' ? 'Высокий' : 'Очень высокий'}"></div>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted small">Цель</span>
+                    <div th:text="${profile.goal == null ? '—' :
+                                    profile.goal.name() == 'WEIGHT_LOSS' ? 'Похудение' :
+                                    profile.goal.name() == 'MAINTENANCE' ? 'Поддержание веса' : 'Набор массы'}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма обновления профиля (скрыта по умолчанию) -->
+    <div class="collapse mb-3" id="profileForm">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">Редактировать данные профиля</h6></div>
+            <div class="card-body">
+                <form th:action="@{/profile}" method="post" th:object="${profile}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Имя</label>
+                            <input type="text" th:field="*{name}" class="form-control" placeholder="Ваше имя">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Пол</label>
+                            <select th:field="*{gender}" class="form-select">
+                                <option value="">— выберите —</option>
+                                <option value="MALE">Мужской</option>
+                                <option value="FEMALE">Женский</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Дата рождения</label>
+                            <input type="date" th:field="*{birthDate}" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Цель</label>
+                            <select th:field="*{goal}" class="form-select">
+                                <option value="">— выберите —</option>
+                                <option value="WEIGHT_LOSS">Похудение (−20% от нормы)</option>
+                                <option value="MAINTENANCE">Поддержание веса</option>
+                                <option value="WEIGHT_GAIN">Набор массы (+20% к норме)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                        <button type="button" class="btn btn-outline-secondary"
+                                data-bs-toggle="collapse" data-bs-target="#profileForm">Отмена</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма добавления замера (скрыта по умолчанию) -->
+    <div class="collapse mb-3" id="metricsForm">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">Добавить замер тела
+                    <small class="text-muted ms-2">дата сохранится автоматически</small>
+                </h6>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/profile/metrics}" method="post" th:object="${metricsRequest}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Рост (см)</label>
+                            <input type="number" th:field="*{height}" class="form-control"
+                                   min="100" max="250" step="0.1" placeholder="170">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Масса (кг)</label>
+                            <input type="number" th:field="*{weight}" class="form-control"
+                                   min="30" max="300" step="0.1" placeholder="65">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Уровень активности</label>
+                            <select th:field="*{activityLevel}" class="form-select">
+                                <option value="">— выберите —</option>
+                                <option value="SEDENTARY">Минимальный</option>
+                                <option value="LIGHTLY_ACTIVE">Низкий</option>
+                                <option value="MODERATELY_ACTIVE">Средний</option>
+                                <option value="VERY_ACTIVE">Высокий</option>
+                                <option value="EXTRA_ACTIVE">Очень высокий</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-success">Добавить замер</button>
+                        <button type="button" class="btn btn-outline-secondary"
+                                data-bs-toggle="collapse" data-bs-target="#metricsForm">Отмена</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- График веса -->
+    <div class="card shadow-sm mb-3" th:if="${metricsHistory != null and !metricsHistory.empty}">
+        <div class="card-header bg-white"><h6 class="mb-0">Динамика веса</h6></div>
+        <div class="card-body">
+            <!-- Скрытый контейнер с данными для графика (последние 10 замеров) -->
+            <div id="weightData" class="d-none">
+                <span th:each="m, s : ${metricsHistory}" th:if="${s.index < 10}"
+                      th:data-date="${#temporals.format(m.measuredAt, 'dd.MM.yy HH:mm')}"
+                      th:data-weight="${m.weight}"></span>
+            </div>
+            <canvas id="weightChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- История замеров -->
+    <div class="card shadow-sm" th:if="${metricsHistory != null and !metricsHistory.empty}">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">История замеров
+                <small class="text-muted fw-normal ms-2"
+                       th:if="${metricsTotal > 10}"
+                       th:text="'(последние 10 из ' + ${metricsTotal} + ')'"></small>
+            </h6>
+            <a th:if="${metricsTotal > 10}" th:href="@{/profile/metrics/history}"
+               class="btn btn-outline-secondary btn-sm">Все замеры →</a>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Дата записи</th>
+                    <th>Рост, см</th>
+                    <th>Масса, кг</th>
+                    <th>ИМТ</th>
+                    <th>Активность</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${metricsHistory}">
+                    <td th:text="${#temporals.format(m.measuredAt, 'dd.MM.yyyy HH:mm')}"></td>
+                    <td th:text="${m.height}"></td>
+                    <td th:text="${m.weight}"></td>
+                    <td th:text="${#numbers.formatDecimal(m.bmi(), 1, 1)}"></td>
+                    <td th:text="${m.activityLevel.name() == 'SEDENTARY' ? 'Мин.' :
+                                   m.activityLevel.name() == 'LIGHTLY_ACTIVE' ? 'Низкий' :
+                                   m.activityLevel.name() == 'MODERATELY_ACTIVE' ? 'Средний' :
+                                   m.activityLevel.name() == 'VERY_ACTIVE' ? 'Высокий' : 'Очень выс.'}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Дата рождения не может быть в будущем
+    (function() {
+        var t = new Date();
+        var today = t.getFullYear() + '-'
+            + String(t.getMonth() + 1).padStart(2, '0') + '-'
+            + String(t.getDate()).padStart(2, '0');
+        document.querySelectorAll('input[type="date"]').forEach(function(el) {
+            el.max = today;
+        });
+    })();
+</script>
+<script>
+    const weightSpans = document.querySelectorAll('#weightData span');
+    if (weightSpans.length > 0) {
+        const labels = [], values = [];
+        // Данные приходят от новых к старым — разворачиваем для хронологического порядка
+        weightSpans.forEach(s => {
+            labels.unshift(s.dataset.date);
+            values.unshift(parseFloat(s.dataset.weight));
+        });
+
+        new Chart(document.getElementById('weightChart'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Масса, кг',
+                    data: values,
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25,135,84,0.1)',
+                    pointBackgroundColor: '#198754',
+                    pointRadius: 5,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.parsed.y + ' кг'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: 'кг' },
+                        ticks: { callback: v => v + ' кг' }
+                    }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Дневник — DairyFood</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container pb-5">
+
+    <!-- Шапка с датой -->
+    <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+        <h5 class="mb-0 fw-semibold">Записи за</h5>
+        <form method="get" th:action="@{/diary}" class="d-flex align-items-center gap-2">
+            <input type="date" name="date" th:value="${date}" class="form-control" style="width:170px">
+            <button class="btn btn-success btn-sm">Показать</button>
+            <a th:href="@{/diary}" class="btn btn-outline-secondary btn-sm">Сегодня</a>
+        </form>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Левая колонка: приёмы пищи -->
+        <div class="col-lg-8">
+
+            <!-- Завтрак -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-semibold">Завтрак</span>
+                    <button class="btn btn-success btn-sm" onclick="openAddModal('BREAKFAST','Завтрак')">+ Добавить</button>
+                </div>
+                <div class="card-body p-0">
+                    <div th:if="${breakfast.empty}" class="text-muted text-center py-3 small">Нет записей</div>
+                    <div th:each="e : ${breakfast}" class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                        <span th:text="${e.productName}"></span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted small" th:text="${e.weight + ' г'}"></span>
+                            <span class="text-muted small" th:text="${#numbers.formatDecimal(e.calories,1,0) + ' ккал'}"></span>
+                            <form th:action="@{/diary/entry/{id}/delete(id=${e.id})}" method="post">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1 lh-1">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Обед -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-semibold">Обед</span>
+                    <button class="btn btn-success btn-sm" onclick="openAddModal('LUNCH','Обед')">+ Добавить</button>
+                </div>
+                <div class="card-body p-0">
+                    <div th:if="${lunch.empty}" class="text-muted text-center py-3 small">Нет записей</div>
+                    <div th:each="e : ${lunch}" class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                        <span th:text="${e.productName}"></span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted small" th:text="${e.weight + ' г'}"></span>
+                            <span class="text-muted small" th:text="${#numbers.formatDecimal(e.calories,1,0) + ' ккал'}"></span>
+                            <form th:action="@{/diary/entry/{id}/delete(id=${e.id})}" method="post">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1 lh-1">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ужин -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-semibold">Ужин</span>
+                    <button class="btn btn-success btn-sm" onclick="openAddModal('DINNER','Ужин')">+ Добавить</button>
+                </div>
+                <div class="card-body p-0">
+                    <div th:if="${dinner.empty}" class="text-muted text-center py-3 small">Нет записей</div>
+                    <div th:each="e : ${dinner}" class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                        <span th:text="${e.productName}"></span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted small" th:text="${e.weight + ' г'}"></span>
+                            <span class="text-muted small" th:text="${#numbers.formatDecimal(e.calories,1,0) + ' ккал'}"></span>
+                            <form th:action="@{/diary/entry/{id}/delete(id=${e.id})}" method="post">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1 lh-1">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Перекус -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-semibold">Перекус</span>
+                    <button class="btn btn-success btn-sm" onclick="openAddModal('SNACK','Перекус')">+ Добавить</button>
+                </div>
+                <div class="card-body p-0">
+                    <div th:if="${snack.empty}" class="text-muted text-center py-3 small">Нет записей</div>
+                    <div th:each="e : ${snack}" class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                        <span th:text="${e.productName}"></span>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-muted small" th:text="${e.weight + ' г'}"></span>
+                            <span class="text-muted small" th:text="${#numbers.formatDecimal(e.calories,1,0) + ' ккал'}"></span>
+                            <form th:action="@{/diary/entry/{id}/delete(id=${e.id})}" method="post">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1 lh-1">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Правая колонка: итого -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm sticky-top" style="top:80px" th:if="${dailyReport != null}">
+                <div class="card-header bg-white"><h6 class="mb-0">Итого за день</h6></div>
+                <div class="card-body text-center">
+                    <div class="fs-1 fw-bold text-warning"
+                         th:text="${#numbers.formatDecimal(dailyReport.totalCalories,1,0)}"></div>
+                    <div class="text-muted mb-1">ккал съедено</div>
+
+                    <div th:if="${recommended > 0}" class="mb-3">
+                        <small class="text-muted">Норма: </small>
+                        <span class="fw-semibold" th:text="${#numbers.formatDecimal(recommended,1,0) + ' ккал'}"></span>
+                        <div class="progress mt-2" style="height:10px">
+                            <div class="progress-bar"
+                                 th:classappend="${dailyReport.totalCalories > recommended ? 'bg-danger' : 'bg-success'}"
+                                 th:style="'width:' + ${dailyReport.totalCalories / recommended * 100 > 100
+                                            ? 100 : dailyReport.totalCalories / recommended * 100} + '%'">
+                            </div>
+                        </div>
+                        <small th:classappend="${dailyReport.totalCalories > recommended ? 'text-danger' : 'text-success'}"
+                               th:text="${#numbers.formatDecimal(dailyReport.totalCalories / recommended * 100,1,0) + '% от нормы'}"></small>
+                    </div>
+                    <div th:if="${recommended == 0}" class="text-muted small mb-3">
+                        Заполните профиль для расчёта нормы
+                    </div>
+
+                    <div class="row text-center g-2">
+                        <div class="col-4">
+                            <div class="fw-semibold text-info"
+                                 th:text="${#numbers.formatDecimal(dailyReport.totalProteins,1,1)}"></div>
+                            <small class="text-muted">белки, г</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-semibold text-danger"
+                                 th:text="${#numbers.formatDecimal(dailyReport.totalFats,1,1)}"></div>
+                            <small class="text-muted">жиры, г</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-semibold text-success"
+                                 th:text="${#numbers.formatDecimal(dailyReport.totalCarbs,1,1)}"></div>
+                            <small class="text-muted">углеводы, г</small>
+                        </div>
+                    </div>
+                    <a th:href="@{/reports(date=${date})}" class="btn btn-outline-success btn-sm w-100 mt-3">
+                        Подробный отчёт →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- Модальное окно: добавить продукт или рецепт                       -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Добавить</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Вкладки -->
+                <ul class="nav nav-tabs mb-3" id="addModalTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab"
+                                data-bs-target="#tabProducts" type="button">
+                            Продукт
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab"
+                                data-bs-target="#tabRecipes" type="button">
+                            Рецепт
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <!-- ── Вкладка: Продукты ──────────────────────────── -->
+                    <div class="tab-pane fade show active" id="tabProducts">
+
+                        <input type="text" id="productSearch" class="form-control mb-3"
+                               placeholder="Поиск по названию...">
+
+                        <div id="noProductResults" class="text-muted text-center py-2 small d-none">
+                            Ничего не найдено
+                        </div>
+                        <div style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:8px">
+                            <div th:if="${products.empty}" class="text-muted text-center py-4">
+                                Нет продуктов. <a th:href="@{/products/new}">Добавьте первый</a>.
+                            </div>
+                            <div th:each="p : ${products}"
+                                 class="diary-product-row d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                                <div>
+                                    <div class="fw-semibold" th:text="${p.name}"></div>
+                                    <small class="text-muted"
+                                           th:text="${#numbers.formatDecimal(p.caloriesPer100g,1,0) + ' ккал  ·  Б ' +
+                                                      #numbers.formatDecimal(p.proteinsPer100g,1,1) + '  Ж ' +
+                                                      #numbers.formatDecimal(p.fatsPer100g,1,1) + '  У ' +
+                                                      #numbers.formatDecimal(p.carbsPer100g,1,1) + '  (на 100 г)'}"></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success ms-3 flex-shrink-0"
+                                        th:attr="data-id=${p.id}, data-name=${p.name}"
+                                        onclick="selectProduct(this)">
+                                    Выбрать
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Форма добавления продукта (скрыта до выбора) -->
+                        <div id="addForm" class="d-none mt-3">
+                            <div class="alert alert-success py-2 mb-3">
+                                Выбран: <strong id="selectedProductName"></strong>
+                            </div>
+                            <form th:action="@{/diary/entry}" method="post">
+                                <input type="hidden" id="productIdInput" name="productId">
+                                <input type="hidden" id="mealTypeInput" name="mealType">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <div class="d-flex align-items-end gap-3">
+                                    <div>
+                                        <label class="form-label mb-1">Количество (г)</label>
+                                        <input type="number" name="weight" id="weightInput"
+                                               class="form-control" min="1" max="5000"
+                                               placeholder="100" style="width:140px" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">Добавить в дневник</button>
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            onclick="document.getElementById('addForm').classList.add('d-none')">Отмена</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ── Вкладка: Рецепты ───────────────────────────── -->
+                    <div class="tab-pane fade" id="tabRecipes">
+
+                        <input type="text" id="recipeSearch" class="form-control mb-3"
+                               placeholder="Поиск по названию рецепта...">
+
+                        <div id="noRecipeResults" class="text-muted text-center py-2 small d-none">
+                            Ничего не найдено
+                        </div>
+                        <div style="max-height:300px; overflow-y:auto; border:1px solid #dee2e6; border-radius:8px">
+                            <div th:if="${recipes.empty}" class="text-muted text-center py-4">
+                                Рецептов нет.
+                                <a th:href="@{/recipes}">Создайте первый</a>.
+                            </div>
+                            <div th:each="r : ${recipes}"
+                                 class="diary-recipe-row d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                                <div>
+                                    <div class="fw-semibold"><span th:text="${r.name}"></span></div>
+                                    <small class="text-muted"
+                                           th:text="${#numbers.formatDecimal(r.caloriesPer100g,1,0) + ' ккал/100г  ·  вес рецепта: ' +
+                                                      #numbers.formatDecimal(r.totalWeight,1,0) + ' г  ·  Б ' +
+                                                      #numbers.formatDecimal(r.proteinsPer100g,1,1) + '  Ж ' +
+                                                      #numbers.formatDecimal(r.fatsPer100g,1,1) + '  У ' +
+                                                      #numbers.formatDecimal(r.carbsPer100g,1,1)}"></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success ms-3 flex-shrink-0"
+                                        th:attr="data-id=${r.id},
+                                                 data-name=${r.name},
+                                                 data-cal=${r.caloriesPer100g}"
+                                        onclick="selectRecipe(this)">
+                                    Выбрать
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Форма добавления рецепта (скрыта до выбора) -->
+                        <div id="addRecipeForm" class="d-none mt-3">
+                            <div class="alert alert-success py-2 mb-3">
+                                Выбран рецепт: <strong id="selectedRecipeName"></strong>
+                                <br><small class="text-muted" id="selectedRecipeInfo"></small>
+                            </div>
+                            <form th:action="@{/diary/entry/recipe}" method="post">
+                                <input type="hidden" id="recipeIdInput"       name="recipeId">
+                                <input type="hidden" id="recipeMealTypeInput" name="mealType">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <div class="d-flex align-items-end gap-3">
+                                    <div>
+                                        <label class="form-label mb-1">Количество (г)</label>
+                                        <input type="number" name="weight" id="recipeWeightInput"
+                                               class="form-control" min="1" max="5000"
+                                               placeholder="100" style="width:140px" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">Добавить в дневник</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div><!-- /tab-content -->
+            </div><!-- /modal-body -->
+
+            <div class="modal-footer justify-content-between">
+                <div class="d-flex gap-2">
+                    <a th:href="@{/products/new}" class="btn btn-outline-secondary btn-sm">+ Продукт</a>
+                    <a th:href="@{/recipes}"      class="btn btn-outline-secondary btn-sm">+ Рецепт</a>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Запрет выбора будущих дат (локальная дата, не UTC)
+    (function() {
+        var t = new Date();
+        var today = t.getFullYear() + '-'
+            + String(t.getMonth() + 1).padStart(2, '0') + '-'
+            + String(t.getDate()).padStart(2, '0');
+        document.querySelectorAll('input[type="date"]').forEach(function(el) {
+            el.max = today;
+        });
+    })();
+</script>
+<script>
+    // ── Открыть модальное окно ────────────────────────────────────
+    function openAddModal(mealType, label) {
+        // Устанавливаем тип приёма пищи для ОБЕИХ форм
+        document.getElementById('mealTypeInput').value       = mealType;
+        document.getElementById('recipeMealTypeInput').value = mealType;
+
+        document.getElementById('modalTitle').textContent = label + ': добавить';
+
+        // Скрываем формы
+        document.getElementById('addForm').classList.add('d-none');
+        document.getElementById('addRecipeForm').classList.add('d-none');
+
+        // Очищаем поиск и показываем все элементы
+        document.getElementById('productSearch').value = '';
+        document.getElementById('recipeSearch').value  = '';
+        document.querySelectorAll('.diary-product-row').forEach(function(r){ r.style.removeProperty('display'); });
+        document.querySelectorAll('.diary-recipe-row').forEach(function(r){ r.style.removeProperty('display'); });
+        document.getElementById('noProductResults').classList.add('d-none');
+        document.getElementById('noRecipeResults').classList.add('d-none');
+
+        new bootstrap.Modal(document.getElementById('addProductModal')).show();
+        setTimeout(() => document.getElementById('productSearch').focus(), 300);
+    }
+
+    // ── Выбрать продукт ──────────────────────────────────────────
+    function selectProduct(btn) {
+        document.getElementById('productIdInput').value        = btn.getAttribute('data-id');
+        document.getElementById('selectedProductName').textContent = btn.getAttribute('data-name');
+        document.getElementById('addForm').classList.remove('d-none');
+        document.getElementById('weightInput').focus();
+    }
+
+    // ── Выбрать рецепт ───────────────────────────────────────────
+    function selectRecipe(btn) {
+        document.getElementById('recipeIdInput').value          = btn.getAttribute('data-id');
+        document.getElementById('selectedRecipeName').textContent = btn.getAttribute('data-name');
+        document.getElementById('selectedRecipeInfo').textContent =
+            Math.round(parseFloat(btn.getAttribute('data-cal'))) + ' ккал на 100 г';
+        document.getElementById('addRecipeForm').classList.remove('d-none');
+        document.getElementById('recipeWeightInput').focus();
+    }
+
+    // ── Поиск по продуктам ───────────────────────────────────────
+    // d-flex задаёт display:flex !important, поэтому используем setProperty('important')
+    var pSearch = document.getElementById('productSearch');
+    if (pSearch) {
+        pSearch.addEventListener('input', function () {
+            var q = this.value.toLowerCase().trim();
+            var rows = document.querySelectorAll('.diary-product-row');
+            var visible = 0;
+            rows.forEach(function (row) {
+                var nameEl = row.querySelector('.fw-semibold');
+                var name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                if (name.includes(q)) {
+                    row.style.removeProperty('display');
+                    visible++;
+                } else {
+                    row.style.setProperty('display', 'none', 'important');
+                }
+            });
+            document.getElementById('noProductResults').classList.toggle('d-none', visible > 0 || q.length === 0);
+        });
+    }
+
+    // ── Поиск по рецептам ─────────────────────────────────────────
+    var rSearch = document.getElementById('recipeSearch');
+    if (rSearch) {
+        rSearch.addEventListener('input', function () {
+            var q = this.value.toLowerCase().trim();
+            var rows = document.querySelectorAll('.diary-recipe-row');
+            var visible = 0;
+            rows.forEach(function (row) {
+                var nameEl = row.querySelector('.fw-semibold span') || row.querySelector('.fw-semibold');
+                var name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                if (name.includes(q)) {
+                    row.style.removeProperty('display');
+                    visible++;
+                } else {
+                    row.style.setProperty('display', 'none', 'important');
+                }
+            });
+            document.getElementById('noRecipeResults').classList.toggle('d-none', visible > 0 || q.length === 0);
+        });
+    }
+
+    // ── При смене вкладки скрывать открытые формы ────────────────
+    document.querySelectorAll('#addModalTabs [data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function () {
+            document.getElementById('addForm').classList.add('d-none');
+            document.getElementById('addRecipeForm').classList.add('d-none');
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Рецепты — DairyFood</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container pb-5" style="max-width:860px">
+
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="mb-0 fw-semibold">Рецепты</h5>
+        <button class="btn btn-success btn-sm"
+                data-bs-toggle="collapse" data-bs-target="#createForm">
+            + Создать рецепт
+        </button>
+    </div>
+
+    <!-- Уведомления -->
+    <div th:if="${param.created}"  class="alert alert-success py-2">Рецепт сохранён</div>
+    <div th:if="${param.error}"    class="alert alert-danger  py-2">Добавьте хотя бы один ингредиент</div>
+    <div th:if="${param.forbidden}" class="alert alert-danger  py-2">Вы не можете удалить чужой рецепт</div>
+
+    <!-- ══ Форма создания рецепта ══════════════════════════════════ -->
+    <div class="collapse mb-4" id="createForm">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">Новый рецепт</h6></div>
+            <div class="card-body">
+                <form method="post" th:action="@{/recipes/new}" id="recipeForm"
+                      enctype="multipart/form-data">
+
+                    <div class="mb-3">
+                        <label class="form-label">Название рецепта</label>
+                        <input type="text" name="name" class="form-control"
+                               required placeholder="Например: Гречневая каша с овощами">
+                    </div>
+
+                    <label class="form-label">Ингредиенты</label>
+                    <div class="table-responsive mb-2">
+                        <table class="table table-sm align-middle mb-0" id="ingredientsTable">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Продукт</th>
+                                <th style="width:130px">Граммы</th>
+                                <th style="width:40px"></th>
+                            </tr>
+                            </thead>
+                            <tbody id="ingredientsList">
+                            <!-- строки добавляются JavaScript-ом -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-secondary btn-sm mb-3"
+                            onclick="addIngredient()">
+                        + Добавить ингредиент
+                    </button>
+
+                    <!-- Предпросмотр итого -->
+                    <div id="nutritionPreview" class="alert alert-info py-2 small d-none mb-3">
+                        <strong>Итого по рецепту:</strong>
+                        <span id="previewCalories">0</span> ккал ·
+                        Б <span id="previewProteins">0</span> г ·
+                        Ж <span id="previewFats">0</span> г ·
+                        У <span id="previewCarbs">0</span> г ·
+                        Вес: <span id="previewWeight">0</span> г
+                        <br>
+                        <span class="text-muted">На 100 г: <span id="previewPer100">0</span> ккал</span>
+                    </div>
+
+                    <!-- Скрытый шаблон строки ингредиента (disabled — не сабмитится) -->
+                    <table style="display:none">
+                        <tbody>
+                        <tr id="ingredientTemplate">
+                            <td>
+                                <select class="form-select form-select-sm" disabled>
+                                    <option value="">— выберите продукт —</option>
+                                    <option th:each="p : ${products}"
+                                            th:value="${p.id}"
+                                            th:text="${p.name + ' (' + #numbers.formatDecimal(p.caloriesPer100g,1,0) + ' ккал/100г)'}"
+                                            th:attr="data-cal=${p.caloriesPer100g},
+                                                     data-prot=${p.proteinsPer100g},
+                                                     data-fat=${p.fatsPer100g},
+                                                     data-carb=${p.carbsPer100g}">
+                                    </option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm"
+                                       disabled min="1" max="5000" step="0.1" placeholder="г">
+                            </td>
+                            <td>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger py-0 px-2"
+                                        onclick="removeIngredient(this)">✕</button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Фото рецепта (необязательно) -->
+                    <div class="mb-3">
+                        <label class="form-label">Фото рецепта <span class="text-muted small">(необязательно)</span></label>
+                        <input type="file" name="photo" class="form-control" accept="image/*"
+                               id="photoInput" onchange="previewPhoto(this)">
+                        <img id="photoPreview" src="#" alt="Предпросмотр"
+                             class="mt-2 rounded d-none"
+                             style="max-height:180px; max-width:100%; object-fit:cover;">
+                    </div>
+
+                    <button type="submit" class="btn btn-success">Сохранить рецепт</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ Поиск по рецептам ════════════════════════════════════════ -->
+    <div th:if="${!recipes.empty}" class="mb-3">
+        <input type="text" id="recipeSearch" class="form-control"
+               placeholder="Поиск рецепта по названию...">
+    </div>
+
+    <!-- ══ Список рецептов ══════════════════════════════════════════ -->
+    <div th:if="${recipes.empty}" class="text-muted text-center py-5">
+        Рецептов пока нет. Создайте первый!
+    </div>
+
+    <div id="noResults" class="text-muted text-center py-4 d-none">Ничего не найдено</div>
+
+    <div class="row g-3">
+        <div class="col-12 recipe-card" th:each="r : ${recipes}"
+             th:attr="data-name=${r.name}">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+
+                        <!-- Фото рецепта (если есть) -->
+                        <img th:if="${r.hasPhoto}"
+                             th:src="@{/recipes/{id}/photo(id=${r.id})}"
+                             alt="Фото"
+                             class="rounded flex-shrink-0"
+                             style="width:90px; height:90px; object-fit:cover;">
+
+                        <!-- Левая часть: название + нутриенты -->
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold fs-6 mb-1">
+                                <span th:text="${r.name}"></span>
+                            </div>
+                            <div class="text-muted small">
+                                <span class="badge bg-warning text-dark me-1"
+                                      th:text="${#numbers.formatDecimal(r.caloriesPer100g,1,0) + ' ккал/100г'}"></span>
+                                <span class="badge bg-info    text-dark me-1"
+                                      th:text="'Б ' + ${#numbers.formatDecimal(r.proteinsPer100g,1,1)} + ' г'"></span>
+                                <span class="badge bg-danger        me-1"
+                                      th:text="'Ж ' + ${#numbers.formatDecimal(r.fatsPer100g,1,1)} + ' г'"></span>
+                                <span class="badge bg-success        me-1"
+                                      th:text="'У ' + ${#numbers.formatDecimal(r.carbsPer100g,1,1)} + ' г'"></span>
+                                <span class="text-muted ms-1"
+                                      th:text="'· вес рецепта: ' + ${#numbers.formatDecimal(r.totalWeight,1,0)} + ' г'"></span>
+                            </div>
+
+                            <!-- Кнопка разворачивания ингредиентов -->
+                            <button class="btn btn-link btn-sm p-0 mt-1 text-secondary"
+                                    data-bs-toggle="collapse"
+                                    th:attr="data-bs-target='#ing-' + ${r.id}">
+                                ▸ Состав
+                            </button>
+                            <div class="collapse mt-1" th:id="'ing-' + ${r.id}">
+                                <ul class="mb-0 ps-3">
+                                    <li th:each="line : ${r.ingredients}"
+                                        class="small text-muted"
+                                        th:text="${line}"></li>
+                                </ul>
+                                <small class="text-muted">
+                                    Добавил: <span th:text="${r.createdBy}"></span>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Правая часть: удалить (только для автора) -->
+                        <form th:if="${r.createdBy == currentUserEmail}"
+                              th:action="@{/recipes/{id}/delete(id=${r.id})}" method="post"
+                              onsubmit="return confirm('Удалить рецепт «' + this.dataset.name + '»?')"
+                              th:attr="data-name=${r.name}">
+                            <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ── Динамические строки ингредиентов ─────────────────────────
+    function addIngredient() {
+        const template = document.getElementById('ingredientTemplate');
+        const row = template.cloneNode(true);
+        row.removeAttribute('id');
+        row.classList.add('ingredient-row');
+
+        const select = row.querySelector('select');
+        select.removeAttribute('disabled');
+        select.setAttribute('name', 'productIds');
+        select.setAttribute('required', 'required');
+        select.addEventListener('change', updatePreview);
+
+        const input = row.querySelector('input[type="number"]');
+        input.removeAttribute('disabled');
+        input.setAttribute('name', 'weights');
+        input.setAttribute('required', 'required');
+        input.addEventListener('input', updatePreview);
+
+        document.getElementById('ingredientsList').appendChild(row);
+        updatePreview();
+    }
+
+    function removeIngredient(btn) {
+        btn.closest('tr').remove();
+        updatePreview();
+    }
+
+    // ── Предпросмотр итоговой питательности ──────────────────────
+    function updatePreview() {
+        let totalWeight = 0, totalCal = 0, totalProt = 0, totalFat = 0, totalCarb = 0;
+
+        document.querySelectorAll('.ingredient-row').forEach(row => {
+            const select = row.querySelector('select[name="productIds"]');
+            const input  = row.querySelector('input[name="weights"]');
+            const w = parseFloat(input.value) || 0;
+            const opt = select.options[select.selectedIndex];
+
+            if (opt && opt.value && w > 0) {
+                totalWeight += w;
+                totalCal  += (parseFloat(opt.dataset.cal)  || 0) * w / 100;
+                totalProt += (parseFloat(opt.dataset.prot) || 0) * w / 100;
+                totalFat  += (parseFloat(opt.dataset.fat)  || 0) * w / 100;
+                totalCarb += (parseFloat(opt.dataset.carb) || 0) * w / 100;
+            }
+        });
+
+        const preview = document.getElementById('nutritionPreview');
+        if (totalWeight > 0) {
+            preview.classList.remove('d-none');
+            document.getElementById('previewCalories').textContent = Math.round(totalCal);
+            document.getElementById('previewProteins').textContent = totalProt.toFixed(1);
+            document.getElementById('previewFats').textContent     = totalFat.toFixed(1);
+            document.getElementById('previewCarbs').textContent    = totalCarb.toFixed(1);
+            document.getElementById('previewWeight').textContent   = Math.round(totalWeight);
+            document.getElementById('previewPer100').textContent   =
+                Math.round(totalCal / totalWeight * 100);
+        } else {
+            preview.classList.add('d-none');
+        }
+    }
+
+    // ── Предпросмотр фото при выборе ─────────────────────────────
+    function previewPhoto(input) {
+        const preview = document.getElementById('photoPreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.src = '#';
+            preview.classList.add('d-none');
+        }
+    }
+
+    // ── Поиск по списку рецептов ─────────────────────────────────
+    const recipeSearchInput = document.getElementById('recipeSearch');
+    if (recipeSearchInput) {
+        recipeSearchInput.addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.recipe-card');
+            let visible = 0;
+            cards.forEach(function(card) {
+                const nameEl = card.querySelector('.fw-semibold span') || card.querySelector('.fw-semibold');
+                const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                const match = name.includes(q);
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            document.getElementById('noResults').classList.toggle('d-none', visible > 0);
+        });
+    }
+
+    // Автоматически добавить первую строку при открытии формы
+    document.querySelector('[data-bs-target="#createForm"]')
+        .addEventListener('click', function () {
+            setTimeout(() => {
+                if (document.querySelectorAll('.ingredient-row').length === 0) {
+                    addIngredient();
+                }
+            }, 350);
+        });
+</script>
+</body>
+</html>

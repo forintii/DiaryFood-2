@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Отчёты — DairyFood</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-light">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="container pb-5">
+
+    <!-- Выбор даты -->
+    <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+        <h5 class="mb-0 fw-semibold">Отчёты</h5>
+        <form method="get" th:action="@{/reports}" class="d-flex align-items-center gap-2">
+            <input type="date" name="date" th:value="${report.date}" class="form-control" style="width:170px">
+            <button class="btn btn-success btn-sm">Показать</button>
+            <a th:href="@{/reports}" class="btn btn-outline-secondary btn-sm">Сегодня</a>
+        </form>
+    </div>
+
+    <!-- Карточки дня -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-3 fw-bold text-warning"
+                         th:text="${#numbers.formatDecimal(report.totalCalories,1,0)}"></div>
+                    <small class="text-muted">ккал съедено</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-3 fw-bold text-success"
+                         th:text="${report.recommendedCalories > 0 ? #numbers.formatDecimal(report.recommendedCalories,1,0) : '—'}"></div>
+                    <small class="text-muted">ккал норма</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-3 fw-bold text-info"
+                         th:text="${#numbers.formatDecimal(report.totalProteins,1,1) + ' г'}"></div>
+                    <small class="text-muted">белки</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body py-3">
+                    <div class="fs-3 fw-bold"
+                         th:classappend="${report.deviationPercent > 10 ? 'text-danger' : 'text-success'}"
+                         th:text="${report.recommendedCalories > 0 ?
+                                    (report.deviationPercent >= 0 ? '+' : '') +
+                                    #numbers.formatDecimal(report.deviationPercent,1,1) + '%' : '—'}"></div>
+                    <small class="text-muted">отклонение от нормы</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Графики приёмов пищи -->
+    <div class="row g-4">
+
+        <!-- График 1: Калории за неделю -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Калории за неделю
+                        <span class="text-muted fw-normal small ms-2"
+                              th:text="'(' + ${#temporals.format(weeklyReport.startDate,'dd.MM')} +
+                                       ' — ' + ${#temporals.format(weeklyReport.endDate,'dd.MM.yyyy')} + ')'"></span>
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- График 2: Распределение по приёмам пищи -->
+        <div class="col-md-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Приёмы пищи за день
+                        <span class="text-muted fw-normal small ms-2"
+                              th:text="${#temporals.format(report.date,'dd.MM.yyyy')}"></span>
+                    </h6>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="mealChart" style="max-width:260px; max-height:260px"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Список с процентами -->
+        <div class="col-md-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white"><h6 class="mb-0">Соотношение приёмов пищи</h6></div>
+                <div class="card-body">
+
+                    <div th:if="${report.totalCalories == 0}" class="text-muted text-center py-4">
+                        Нет данных за этот день
+                    </div>
+
+                    <div th:if="${report.totalCalories > 0}">
+                        <!-- Завтрак -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><span style="display:inline-block;width:14px;height:14px;background:#FFC107;border-radius:3px;vertical-align:middle" class="me-2"></span>Завтрак</span>
+                                <span>
+                                    <span class="fw-semibold" th:text="${#numbers.formatDecimal(report.breakfastCalories,1,0) + ' ккал'}"></span>
+                                    <span class="text-muted ms-2" id="pctBreakfast"></span>
+                                </span>
+                            </div>
+                            <div class="progress" style="height:10px">
+                                <div class="progress-bar" style="background:#FFC107" id="barBreakfast"></div>
+                            </div>
+                        </div>
+                        <!-- Обед -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><span style="display:inline-block;width:14px;height:14px;background:#FF8000;border-radius:3px;vertical-align:middle" class="me-2"></span>Обед</span>
+                                <span>
+                                    <span class="fw-semibold" th:text="${#numbers.formatDecimal(report.lunchCalories,1,0) + ' ккал'}"></span>
+                                    <span class="text-muted ms-2" id="pctLunch"></span>
+                                </span>
+                            </div>
+                            <div class="progress" style="height:10px">
+                                <div class="progress-bar" style="background:#FF8000" id="barLunch"></div>
+                            </div>
+                        </div>
+                        <!-- Ужин -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><span style="display:inline-block;width:14px;height:14px;background:#3B82F6;border-radius:3px;vertical-align:middle" class="me-2"></span>Ужин</span>
+                                <span>
+                                    <span class="fw-semibold" th:text="${#numbers.formatDecimal(report.dinnerCalories,1,0) + ' ккал'}"></span>
+                                    <span class="text-muted ms-2" id="pctDinner"></span>
+                                </span>
+                            </div>
+                            <div class="progress" style="height:10px">
+                                <div class="progress-bar" style="background:#3B82F6" id="barDinner"></div>
+                            </div>
+                        </div>
+                        <!-- Перекус -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><span style="display:inline-block;width:14px;height:14px;background:#22C55E;border-radius:3px;vertical-align:middle" class="me-2"></span>Перекус</span>
+                                <span>
+                                    <span class="fw-semibold" th:text="${#numbers.formatDecimal(report.snackCalories,1,0) + ' ккал'}"></span>
+                                    <span class="text-muted ms-2" id="pctSnack"></span>
+                                </span>
+                            </div>
+                            <div class="progress" style="height:10px">
+                                <div class="progress-bar" style="background:#22C55E" id="barSnack"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Раздел: Баланс БЖУ                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="row g-4 mt-1">
+
+        <!-- График: фактическое соотношение БЖУ по ккал -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Соотношение БЖУ
+                        <span class="text-muted fw-normal small ms-2"
+                              th:text="${#temporals.format(report.date,'dd.MM.yyyy')}"></span>
+                    </h6>
+                </div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div th:if="${report.totalCalories == 0}" class="text-muted text-center py-4">
+                        Нет данных за этот день
+                    </div>
+                    <canvas th:if="${report.totalCalories > 0}"
+                            id="macroChart" style="max-width:220px; max-height:220px"></canvas>
+                    <!-- Вердикт о балансе -->
+                    <div id="balanceVerdict" class="mt-3 text-center fw-semibold small"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сравнение с нормой -->
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Баланс белков, жиров и углеводов
+                        <span class="text-muted fw-normal small ms-2">норма: Б 30% · Ж 30% · У 40%</span>
+                    </h6>
+                </div>
+                <div class="card-body">
+
+                    <div th:if="${report.totalCalories == 0}" class="text-muted text-center py-4">
+                        Нет данных за этот день
+                    </div>
+
+                    <div th:if="${report.totalCalories > 0}">
+
+                        <!-- Шапка таблицы -->
+                        <div class="row text-muted small mb-2 px-1">
+                            <div class="col-3">Нутриент</div>
+                            <div class="col-3 text-end">Факт</div>
+                            <div class="col-3 text-end">Норма</div>
+                            <div class="col-3 text-end">% от нормы</div>
+                        </div>
+
+                        <!-- Белки -->
+                        <div class="mb-3">
+                            <div class="row align-items-center px-1 mb-1">
+                                <div class="col-3 fw-semibold">
+                                    <span style="display:inline-block;width:12px;height:12px;background:#3B82F6;border-radius:3px;vertical-align:middle" class="me-1"></span>
+                                    Белки
+                                </div>
+                                <div class="col-3 text-end small"
+                                     th:text="${#numbers.formatDecimal(report.totalProteins,1,1) + ' г'}"></div>
+                                <div class="col-3 text-end small text-muted" id="recProtText">—</div>
+                                <div class="col-3 text-end small fw-semibold" id="pctProtLabel"></div>
+                            </div>
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar" id="barProt"></div>
+                            </div>
+                        </div>
+
+                        <!-- Жиры -->
+                        <div class="mb-3">
+                            <div class="row align-items-center px-1 mb-1">
+                                <div class="col-3 fw-semibold">
+                                    <span style="display:inline-block;width:12px;height:12px;background:#EF4444;border-radius:3px;vertical-align:middle" class="me-1"></span>
+                                    Жиры
+                                </div>
+                                <div class="col-3 text-end small"
+                                     th:text="${#numbers.formatDecimal(report.totalFats,1,1) + ' г'}"></div>
+                                <div class="col-3 text-end small text-muted" id="recFatText">—</div>
+                                <div class="col-3 text-end small fw-semibold" id="pctFatLabel"></div>
+                            </div>
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar" id="barFat"></div>
+                            </div>
+                        </div>
+
+                        <!-- Углеводы -->
+                        <div class="mb-3">
+                            <div class="row align-items-center px-1 mb-1">
+                                <div class="col-3 fw-semibold">
+                                    <span style="display:inline-block;width:12px;height:12px;background:#22C55E;border-radius:3px;vertical-align:middle" class="me-1"></span>
+                                    Углеводы
+                                </div>
+                                <div class="col-3 text-end small"
+                                     th:text="${#numbers.formatDecimal(report.totalCarbs,1,1) + ' г'}"></div>
+                                <div class="col-3 text-end small text-muted" id="recCarbText">—</div>
+                                <div class="col-3 text-end small fw-semibold" id="pctCarbLabel"></div>
+                            </div>
+                            <div class="progress" style="height:8px">
+                                <div class="progress-bar" id="barCarb"></div>
+                            </div>
+                        </div>
+
+                        <!-- Подсказка -->
+                        <div class="alert alert-light py-2 small mb-0 mt-2">
+                            <strong>Рекомендуемые диапазоны:</strong>
+                            Белки 25–35% · Жиры 25–35% · Углеводы 35–50% от суточной калорийности
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- конец контейнера -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function() {
+        var t = new Date();
+        var today = t.getFullYear() + '-'
+            + String(t.getMonth() + 1).padStart(2, '0') + '-'
+            + String(t.getDate()).padStart(2, '0');
+        document.querySelectorAll('input[type="date"]').forEach(function(el) {
+            el.max = today;
+        });
+    })();
+</script>
+<script th:inline="javascript">
+    // ── Данные из контроллера ─────────────────────────────────
+    const weekLabels    = /*[[${weekLabels}]]*/ [];
+    const weekCalories  = /*[[${weekCalories}]]*/ [];
+    const recommended   = /*[[${report.recommendedCalories}]]*/ 0;
+
+    const breakfastCal  = /*[[${report.breakfastCalories}]]*/ 0;
+    const lunchCal      = /*[[${report.lunchCalories}]]*/ 0;
+    const dinnerCal     = /*[[${report.dinnerCalories}]]*/ 0;
+    const snackCal      = /*[[${report.snackCalories}]]*/ 0;
+    const totalCal      = /*[[${report.totalCalories}]]*/ 0;
+
+    const totalProt     = /*[[${report.totalProteins}]]*/ 0;
+    const totalFat      = /*[[${report.totalFats}]]*/ 0;
+    const totalCarb     = /*[[${report.totalCarbs}]]*/ 0;
+    const recProt       = /*[[${report.recommendedProteins}]]*/ 0;
+    const recFat        = /*[[${report.recommendedFats}]]*/ 0;
+    const recCarb       = /*[[${report.recommendedCarbs}]]*/ 0;
+
+    // ── График 1: Калории за неделю ──────────────────────────
+    const barColors = weekCalories.map(c =>
+        recommended > 0
+            ? (c > recommended ? 'rgba(220,53,69,0.75)' : 'rgba(25,135,84,0.75)')
+            : 'rgba(99,102,241,0.75)'
+    );
+
+    const datasets = [{
+        label: 'Калории',
+        data: weekCalories,
+        backgroundColor: barColors,
+        borderRadius: 5
+    }];
+
+    if (recommended > 0) {
+        datasets.push({
+            label: 'Норма',
+            data: weekCalories.map(() => recommended),
+            type: 'line',
+            borderColor: 'rgba(255,193,7,0.9)',
+            backgroundColor: 'transparent',
+            borderDash: [6, 4],
+            pointRadius: 0,
+            borderWidth: 2,
+            tension: 0
+        });
+    }
+
+    new Chart(document.getElementById('weeklyChart'), {
+        type: 'bar',
+        data: { labels: weekLabels, datasets },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'ккал' } }
+            }
+        }
+    });
+
+    // ── График 2: Приёмы пищи (пончик) ───────────────────────
+    const mealData   = [breakfastCal, lunchCal, dinnerCal, snackCal];
+    const mealColors = ['#FFC107', '#FF8000', '#3B82F6', '#22C55E'];
+    const mealLabels = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+
+    new Chart(document.getElementById('mealChart'), {
+        type: 'doughnut',
+        data: {
+            labels: mealLabels,
+            datasets: [{ data: mealData, backgroundColor: mealColors, borderWidth: 2 }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const pct = totalCal > 0 ? Math.round(ctx.raw / totalCal * 100) : 0;
+                            return ` ${ctx.label}: ${Math.round(ctx.raw)} ккал (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // ── Прогресс-бары приёмов пищи ────────────────────────────
+    if (totalCal > 0) {
+        const meals = [
+            { cal: breakfastCal, pct: 'pctBreakfast', bar: 'barBreakfast' },
+            { cal: lunchCal,     pct: 'pctLunch',     bar: 'barLunch'     },
+            { cal: dinnerCal,    pct: 'pctDinner',    bar: 'barDinner'    },
+            { cal: snackCal,     pct: 'pctSnack',     bar: 'barSnack'     }
+        ];
+        meals.forEach(m => {
+            const p = Math.round(m.cal / totalCal * 100);
+            document.getElementById(m.pct).textContent = p + '%';
+            document.getElementById(m.bar).style.width  = p + '%';
+        });
+    }
+
+    // ── График 3: БЖУ — фактическое соотношение по ккал ──────
+    if (totalCal > 0) {
+        const protKcal = totalProt * 4;
+        const fatKcal  = totalFat  * 9;
+        const carbKcal = totalCarb * 4;
+        const macroTotal = protKcal + fatKcal + carbKcal;
+
+        new Chart(document.getElementById('macroChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Белки', 'Жиры', 'Углеводы'],
+                datasets: [{
+                    data: [protKcal, fatKcal, carbKcal],
+                    backgroundColor: ['#3B82F6', '#EF4444', '#22C55E'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 14, padding: 10 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const pct = macroTotal > 0 ? Math.round(ctx.raw / macroTotal * 100) : 0;
+                                return ` ${ctx.label}: ${pct}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Вердикт: сбалансировано ли питание
+        const protPct = macroTotal > 0 ? protKcal / macroTotal * 100 : 0;
+        const fatPct  = macroTotal > 0 ? fatKcal  / macroTotal * 100 : 0;
+        const carbPct = macroTotal > 0 ? carbKcal / macroTotal * 100 : 0;
+
+        const protOk = protPct >= 25 && protPct <= 35;
+        const fatOk  = fatPct  >= 25 && fatPct  <= 35;
+        const carbOk = carbPct >= 35 && carbPct <= 50;
+        const balanced = protOk && fatOk && carbOk;
+
+        const verdict = document.getElementById('balanceVerdict');
+        if (balanced) {
+            verdict.innerHTML = '<span class="text-success">Питание сбалансировано</span>';
+        } else {
+            const problems = [];
+            if (!protOk) problems.push('белки ' + Math.round(protPct) + '%');
+            if (!fatOk)  problems.push('жиры ' + Math.round(fatPct) + '%');
+            if (!carbOk) problems.push('углеводы ' + Math.round(carbPct) + '%');
+            verdict.innerHTML = '<span class="text-warning">Дисбаланс: ' + problems.join(', ') + '</span>';
+        }
+    }
+
+    // ── Прогресс-бары БЖУ vs норма ────────────────────────────
+    if (recProt > 0) {
+        const macros = [
+            { actual: totalProt, rec: recProt, recEl: 'recProtText', barEl: 'barProt', pctEl: 'pctProtLabel', color: '#3B82F6' },
+            { actual: totalFat,  rec: recFat,  recEl: 'recFatText',  barEl: 'barFat',  pctEl: 'pctFatLabel',  color: '#EF4444' },
+            { actual: totalCarb, rec: recCarb, recEl: 'recCarbText', barEl: 'barCarb', pctEl: 'pctCarbLabel', color: '#22C55E' }
+        ];
+
+        macros.forEach(m => {
+            const pct = m.rec > 0 ? Math.round(m.actual / m.rec * 100) : 0;
+            const barWidth = pct > 120 ? 100 : pct * 100 / 120; // шкала до 120%
+            const isOver   = pct > 120;
+            const isOk     = pct >= 80 && pct <= 120;
+
+            document.getElementById(m.recEl).textContent  = Math.round(m.rec) + ' г';
+            document.getElementById(m.pctEl).textContent  = pct + '%';
+            document.getElementById(m.pctEl).style.color  = isOk ? '#16a34a' : (isOver ? '#dc2626' : '#d97706');
+
+            const bar = document.getElementById(m.barEl);
+            bar.style.width      = barWidth + '%';
+            bar.style.background = isOk ? m.color : (isOver ? '#dc2626' : '#f59e0b');
+        });
+    }
+</script>
+</body>
+</html>
