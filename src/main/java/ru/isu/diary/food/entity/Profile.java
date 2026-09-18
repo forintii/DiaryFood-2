@@ -3,6 +3,8 @@ package ru.isu.diary.food.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import ru.isu.diary.food.enums.Gender;
 import ru.isu.diary.food.enums.Goal;
 
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class Profile {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 

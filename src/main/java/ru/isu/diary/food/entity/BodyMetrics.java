@@ -3,6 +3,8 @@ package ru.isu.diary.food.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import ru.isu.diary.food.enums.ActivityLevel;
 
 import java.time.LocalDateTime;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class BodyMetrics {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 

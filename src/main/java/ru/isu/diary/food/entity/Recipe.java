@@ -3,6 +3,8 @@ package ru.isu.diary.food.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class Recipe {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
