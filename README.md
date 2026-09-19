@@ -6,11 +6,12 @@
 - Java
 - Spring Boot
 - Spring Security
-- Spring Data JPA
+- Spring Data JPA, Hibernate
 - MySQL
 - Thymeleaf
-- Chart.js.
+- Bootstrap 5, Chart.js.
 - Lombok
+- Git
 
 ##  Функционал
 - регистрация новых пользователей и аутентификация существующих для
